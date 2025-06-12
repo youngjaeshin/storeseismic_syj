@@ -1,0 +1,50 @@
+# Configuration for Fine-tuning Denoising Task (Time-Slice-as-Token)
+
+run_name: "finetune_denoising_time_v1"
+task_type: "finetune"
+finetune_task_name: "denoising"
+base_results_dir: "./results"
+device: "cuda"
+seed: 42
+
+pretrained_model_path: "./results/pretrain_time_v1/training_output/model.pt"
+
+data:
+  input_seismogram_path: "./synthetic_data/resized/seismograms_whole_resized.npz"
+  processed_data_dir: "processed_data_finetune_denoising_time"
+  token_type: "time_slice"
+  train_split_ratio: 0.8
+  # Slicing to match pre-trained model's expected input (167 time-slices x 118 rec/slice)
+  time_sample_slice_start: null
+  time_sample_slice_end: null
+  receiver_slice_start: 2
+  receiver_slice_end: -3
+
+  noise_params: # Same as trace version
+    apply: true
+    sigma1_value: 1.0
+    sigma2_value: 2.0
+    slice_train_sigma1_range: [0.2, 0.6]
+    slice_train_sigma2_range: [0.6, 1.0]
+    slice_test_sigma1_range: [0.2, 0.6]
+    slice_test_sigma2_range: [0.6, 1.0]
+
+model:
+  input_feature_dim: 118 # Number of receivers per time-slice
+  sequence_length: 167 # Number of time-slices
+  hidden_size: 256
+  num_hidden_layers: 4
+  num_attention_heads: 4
+  intermediate_ffn_factor: 4
+  pre_ln: true
+  # DenoisingHead in modules.py uses config.vocab_size, which should be input_feature_dim here.
+
+training:
+  output_dir: "training_output"
+  batch_size: 16
+  learning_rate: 5.0e-4
+  epochs: 100
+  patience_early_stopping: 20
+  optimizer: "RAdam"
+  loss_function: "MSELoss"
+  warmup_steps: 0

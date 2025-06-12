@@ -1,0 +1,53 @@
+# Configuration for Fine-tuning Fault Detection Task
+# Assumes Trace-as-Token based on original scripts
+
+run_name: "finetune_fault_detection_v1"
+task_type: "finetune"
+finetune_task_name: "fault_detection"
+base_results_dir: "./results"
+device: "cuda"
+seed: null # Or a specific seed if desired
+
+pretrained_model_path: "./results/pretrain_trace_v1/training_output/model.pt"
+
+data:
+  input_seismogram_path: "./synthetic_data/resized/seismograms_whole_resized.npz"
+  # Labels (fault presence)
+  fault_info_path: "./synthetic_data/raw_generated/velocity_models_fault.npy"
+  # fault_type_path: "./synthetic_data/raw_generated/velocity_models_fault_type.npy" # If needed by head
+
+  processed_data_dir: "processed_data_finetune_fault"
+  token_type: "trace"
+  train_split_ratio: 0.8
+  # Slicing for trace-as-token
+  receiver_slice_start: 2
+  receiver_slice_end: -3
+  time_sample_slice_start: null
+  time_sample_slice_end: null
+
+  noise_params: # From prepare_fine_tuning.py
+    apply: true
+    sigma1_value: 1.0
+    sigma2_value: 2.0
+    slice_train_sigma1_range: [0.2, 0.6]
+    slice_train_sigma2_range: [0.6, 1.0]
+    slice_test_sigma1_range: [0.2, 0.6]
+    slice_test_sigma2_range: [0.6, 1.0]
+
+model:
+  input_feature_dim: 167
+  sequence_length: 118
+  hidden_size: 256
+  pre_ln: true # Assuming pre-trained model was PreLN
+  # Task-specific head params (FaultpredHead outputs 1 logit)
+  # No specific output_size param needed for FaultpredHead if it's fixed to 1.
+
+training:
+  output_dir: "training_output"
+  batch_size: 16
+  learning_rate: 5.0e-4
+  epochs: 100
+  patience_early_stopping: 100 # From finetuning_falutdetecting.py
+  optimizer: "RAdam"
+  loss_function: "BCEWithLogitsLoss" # From finetuning_falutdetecting.py
+  warmup_steps: 0

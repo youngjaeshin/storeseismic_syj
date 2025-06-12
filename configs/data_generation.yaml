@@ -1,0 +1,58 @@
+# Configuration for generating synthetic velocity models and seismograms
+
+velocity_model_generation:
+  n_models: 1500
+  distance_samples: 125
+  depth_samples: 200
+  min_layers: 4
+  max_layers: 7
+  fault_probability: 0.5
+  water_depth_min_samples: 10
+  water_depth_max_samples: 26
+  min_thickness_ratio: 0.25
+  max_thickness_ratio: 0.50
+  min_velocity_first_layer: 1.8
+  max_velocity_first_layer: 2.0
+  max_velocity_overall: 4.0
+  fault_dip_min_degrees: 65
+  fault_dip_max_degrees: 80
+  fault_throw_min_ratio: 0.05
+  fault_throw_max_ratio: 0.10
+  output_directory: "./synthetic_data/raw_generated"
+  velocity_models_filename: "velocity_models.npz"
+  fault_info_filename: "velocity_models_fault.npy"
+  fault_type_filename: "velocity_models_fault_type.npy"
+
+# Seismogram Generation Parameters (FDM)
+seismogram_generation:
+  t_time_seconds: 2.0
+  dt_seconds: 0.001
+  dx_km: 0.01
+  dz_km: 0.01
+  f0_ricker_hz: 10.0
+  peak_loc_ricker_seconds: 0.1
+
+  pml_thickness_grid_units: 12
+  fdm_R_pml_reflection_coeff: 0.001
+
+  # Source and Receiver geometry
+  # shot_x_fdm_grid, shot_z_fdm_grid는 이제 랜덤화 로직에 의해 무시됩니다.
+  shot_z_fdm_grid: 3
+  receivers_z_fdm_grid: 3
+
+  # 소스 위치 랜덤화를 위한 설정
+  source_x_position_min_ratio: 0.0 # x축 전체에서 랜덤 선택 (0.0 ~ 1.0)
+  source_x_position_max_ratio: 1.0
+
+  # Input paths
+  input_velocity_model_directory: "./synthetic_data/raw_generated"
+  input_velocity_models_filename: "velocity_models.npz"
+
+  # Output paths
+  output_directory: "./synthetic_data/raw_generated"
+  seismograms_filename: "seismograms_whole.npz"
+
+  # Optional flags
+  plot_source_wavelet: true
+  num_seismogram_examples_to_plot: 2
+  print_model_interval: 50

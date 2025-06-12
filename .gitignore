@@ -1,0 +1,29 @@
+# Python 가상환경 폴더
+seismic_bert_env/
+venv/
+*.env
+
+# Python 캐시 파일 및 컴파일된 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 데이터 파일 (매우 중요!)
+*.npz
+*.npy
+*.pt
+
+# 생성된 데이터를 담는 전체 폴더
+# (소스코드만 관리하고 데이터는 각자 생성하는 것이 원칙)
+synthetic_data/
+processed_data/
+results/
+figure/ # 플롯 저장용 폴더
+
+# IDE 및 에디터 설정 파일
+.vscode/
+.idea/
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints/

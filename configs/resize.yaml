@@ -1,0 +1,22 @@
+# configs/resize.yaml
+
+# Input: raw seismograms from data_generation
+input_directory: "./synthetic_data/raw_generated"
+input_seismograms_filename: "seismograms_whole.npz"
+
+# Output: resized seismograms
+output_directory: "./synthetic_data/resized"
+output_seismograms_filename: "seismograms_whole_resized.npz"
+
+# Time amplification parameters
+apply_time_amplification: true
+time_amplification_power: 1.5
+
+# --- START: Resizing parameters 수정 ---
+# 다운샘플링 스텝 크기를 직접 지정합니다. 1은 다운샘플링 안 함을 의미합니다.
+receiver_downsample_step: 1 # 수신기 축은 스텝 1 (모두 사용)
+time_downsample_step: 12 # 시간 축은 스텝 12 (12배로 다운샘플링)
+# --- END: Resizing parameters 수정 ---
+
+# Optional: Plot an example of the resized seismogram
+plot_example: true

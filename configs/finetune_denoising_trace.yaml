@@ -1,0 +1,53 @@
+# Configuration for Fine-tuning Denoising Task (Trace-as-Token)
+
+run_name: "finetune_denoising_trace_v1"
+task_type: "finetune"
+finetune_task_name: "denoising" # Used to select the correct head and labels
+base_results_dir: "./results"
+device: "cuda"
+seed: 42
+
+pretrained_model_path: "./results/pretrain_trace_v1/training_output/model.pt" # Example path
+
+data:
+  input_seismogram_path: "./synthetic_data/resized/seismograms_whole_resized.npz"
+  processed_data_dir: "processed_data_finetune_denoising_trace" # Specific dir for this task's data
+  token_type: "trace"
+  train_split_ratio: 0.8
+  # Slicing to match pre-trained model's expected input (118 traces x 167 samples/trace)
+  receiver_slice_start: 2 # Ensure these align with the pretrain_trace.yaml data section if reusing its output
+  receiver_slice_end: -3 # Or set to null if pretrain_trace data already has correct dimensions
+  time_sample_slice_start: null
+  time_sample_slice_end: null
+
+  noise_params: # Noise applied to input_embeds; labels are clean seismograms
+    apply: true
+    sigma1_value: 1.0
+    sigma2_value: 2.0
+    slice_train_sigma1_range: [0.2, 0.6] # Proportion of training data for sigma1
+    slice_train_sigma2_range: [0.6, 1.0] # Proportion of training data for sigma2
+    slice_test_sigma1_range: [0.2, 0.6]
+    slice_test_sigma2_range: [0.6, 1.0]
+
+model: # BERT config should match the loaded pre-trained model
+  # These define the expected input shape for the fine-tuning head
+  input_feature_dim: 167 # Number of time samples per trace
+  sequence_length: 118 # Number of traces
+  # The following are typically inherited from the pre-trained model's config
+  hidden_size: 256
+  num_hidden_layers: 4 # Not strictly needed if loading full model, but good for reference
+  num_attention_heads: 4
+  intermediate_ffn_factor: 4
+  pre_ln: true
+  # Ensure head output (vocab_size for DenoisingHead) matches input_feature_dim
+  # DenoisingHead in modules.py uses config.vocab_size, which should be input_feature_dim here.
+
+training:
+  output_dir: "training_output"
+  batch_size: 16
+  learning_rate: 5.0e-4 # From finetuning1_denoising.py
+  epochs: 100
+  patience_early_stopping: 20
+  optimizer: "RAdam" # "radam" in original script
+  loss_function: "MSELoss" # "l2" in original script
+  warmup_steps: 0 # from original script (config.warmup = "none" if config.pre_ln else 0)

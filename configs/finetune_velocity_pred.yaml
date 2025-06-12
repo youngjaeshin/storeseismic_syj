@@ -1,0 +1,57 @@
+# Configuration for Fine-tuning Velocity Prediction Task
+# Assumes Trace-as-Token
+
+run_name: "finetune_velocity_pred_v1"
+task_type: "finetune"
+finetune_task_name: "velocity_prediction"
+base_results_dir: "./results"
+device: "cuda"
+seed: 42 # From finetuning3_velocity.py
+
+pretrained_model_path: "./results/pretrain_trace_v1/training_output/model.pt"
+
+data:
+  input_seismogram_path: "./synthetic_data/resized/seismograms_whole_resized.npz"
+  # Labels (velocity profiles)
+  velocity_models_path: "./synthetic_data/raw_generated/velocity_models.npz"
+  velocity_profile_x_coord_index: 0 # For Vp(z) from model[:, 0, :]
+
+  processed_data_dir: "processed_data_finetune_velocity"
+  token_type: "trace"
+  train_split_ratio: 0.8
+  # Slicing for trace-as-token
+  receiver_slice_start: 2
+  receiver_slice_end: -3
+  time_sample_slice_start: null
+  time_sample_slice_end: null
+
+  noise_params: # From prepare_fine_tuning.py
+    apply: true
+    sigma1_value: 1.0
+    sigma2_value: 2.0
+    slice_train_sigma1_range: [0.2, 0.6]
+    slice_train_sigma2_range: [0.6, 1.0]
+    slice_test_sigma1_range: [0.2, 0.6]
+    slice_test_sigma2_range: [0.6, 1.0]
+
+model:
+  input_feature_dim: 167
+  sequence_length: 118
+  hidden_size: 256
+  pre_ln: true
+  # Task-specific head params
+  # VelpredHead uses config.vel_size, config.vel_min, config.vel_max
+  # vel_min and vel_max should be determined from the training data if not fixed
+  vel_size: 250 # Target output dimension for velocity profile
+  # vel_min: 1500 # Example, determine from data
+  # vel_max: 4500 # Example, determine from data
+
+training:
+  output_dir: "training_output"
+  batch_size: 16
+  learning_rate: 5.0e-4
+  epochs: 100
+  patience_early_stopping: 20 # From finetuning3_velocity.py
+  optimizer: "RAdam"
+  loss_function: "L1Loss" # From finetuning3_velocity.py
+  warmup_steps: 0

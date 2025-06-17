@@ -1,12 +1,13 @@
+# src/models/architecture.py
 import torch
 import torch.nn as nn
 import math
 import transformers
 from transformers import BertConfig, BertForMaskedLM
 from transformers.pytorch_utils import find_pruneable_heads_and_indices, prune_linear_layer
-from typing import Optional, Tuple
+from typing import Optional
 
-# --- START: 필요한 클래스들을 이 파일 안에 직접 정의합니다 ---
+# --- START: BERT Core Components ---
 
 class PositionalEncoding(nn.Module):
     """Fixed Sinusoidal Positional Encoding"""
@@ -137,7 +138,64 @@ class PreLNBertOutput(nn.Module):
         hidden_states = hidden_states + input_tensor
         return hidden_states
 
-# --- END: 필요한 클래스 정의 ---
+# --- END: BERT Core Components ---
+
+
+# --- START: Prediction Heads ---
+
+class BertOnlyMLMHead(nn.Module):
+    """Head for Masked Language Model prediction task (pre-training)."""
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = nn.Linear(config.hidden_size, config.vocab_size)
+
+    def forward(self, sequence_output):
+        return self.predictions(sequence_output)
+
+class DenoisingHead(nn.Module):
+    """Head for Denoising task (similar to MLM head)."""
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = nn.Linear(config.hidden_size, config.vocab_size)
+
+    def forward(self, sequence_output):
+        return self.predictions(sequence_output)
+
+class VelpredHead(nn.Module):
+    """Head for 1D Velocity Profile Prediction."""
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = nn.Linear(config.hidden_size, config.vel_size)
+        self.vel_min = getattr(config, 'vel_min', 1500.0)
+        self.vel_max = getattr(config, 'vel_max', 4500.0)
+
+    def forward(self, sequence_output):
+        if sequence_output.ndim == 3:
+            pooled_output = sequence_output[:, 0, :]
+        else:
+            pooled_output = sequence_output
+        output = self.predictions(pooled_output)
+        output = torch.tanh(output)
+        output = self.vel_min + (output + 1.0) * 0.5 * (self.vel_max - self.vel_min)
+        return output
+
+class FaultpredHead(nn.Module):
+    """Head for Binary Fault Prediction (presence/absence)."""
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = nn.Linear(config.hidden_size, 1)
+
+    def forward(self, sequence_output):
+        if sequence_output.ndim == 3:
+            cls_representation = sequence_output[:, 0, :]
+        else:
+            cls_representation = sequence_output
+        return self.predictions(cls_representation)
+
+# --- END: Prediction Heads ---
+
+
+# --- START: Model Factory Functions ---
 
 def create_bert_config(cfg_model_from_yaml, cfg_data_from_yaml):
     config = BertConfig()
@@ -159,7 +217,7 @@ def create_bert_config(cfg_model_from_yaml, cfg_data_from_yaml):
     config.output_hidden_states = cfg_model_from_yaml.get('output_hidden_states', True)
     return config
 
-def patch_transformers_modules(config_model):
+def _patch_transformers_modules(config_model):
     """Hugging Face 모듈을 사용자 정의 모듈로 교체합니다."""
     transformers.models.bert.modeling_bert.BertEmbeddings = CustomBertEmbeddings
     
@@ -174,7 +232,7 @@ def get_bert_model(model_config: BertConfig, checkpoint_path: Optional[str] = No
     """
     사용자 정의 컴포넌트로 BERT 모델을 생성하고, 선택적으로 가중치를 로드합니다.
     """
-    patch_transformers_modules(model_config)
+    _patch_transformers_modules(model_config)
     
     print("Instantiating BertForMaskedLM with config...")
     model = BertForMaskedLM(config=model_config)
@@ -192,3 +250,5 @@ def get_bert_model(model_config: BertConfig, checkpoint_path: Optional[str] = No
             print("Proceeding with a randomly initialized model.")
             
     return model
+
+# --- END: Model Factory Functions ---

@@ -68,7 +68,12 @@ class Trainer:
             target_labels = batch_on_device['labels'].float()
             if mask_label.ndim == 2 and predictions.ndim == 3:
                 mask_label = mask_label.unsqueeze(-1).expand_as(predictions)
-            loss = self.loss_fn(predictions * mask_label, target_labels * mask_label)
+
+            original_reduction = getattr(self.loss_fn, 'reduction', 'mean')
+            self.loss_fn.reduction = 'none'
+            element_loss = self.loss_fn(predictions, target_labels)
+            self.loss_fn.reduction = original_reduction
+            loss = (element_loss * mask_label).sum() / mask_label.sum()
 
         elif self.finetune_task_name == "denoising":
             target_labels = batch_on_device['labels'].float()

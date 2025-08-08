@@ -68,7 +68,12 @@ class Trainer:
             target_labels = batch_on_device['labels'].float()
             if mask_label.ndim == 2 and predictions.ndim == 3:
                 mask_label = mask_label.unsqueeze(-1).expand_as(predictions)
-            loss = self.loss_fn(predictions * mask_label, target_labels * mask_label)
+
+            # 기존 구현은 마스킹되지 않은 위치까지 포함하여 평균 손실을 계산했기 때문에
+            # 마스크가 거의 0인 경우 손실 값이 과도하게 작아지는 문제가 있었다.
+            # 마스킹된 위치에서만 평균을 계산하도록 수정한다.
+            mse = (predictions - target_labels) ** 2
+            loss = (mse * mask_label).sum() / mask_label.sum().clamp_min(1)
 
         elif self.finetune_task_name == "denoising":
             target_labels = batch_on_device['labels'].float()

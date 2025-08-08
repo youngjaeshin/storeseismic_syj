@@ -19,6 +19,5 @@ class SSDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings['inputs_embeds'])
 
-# SNISTMLM looked identical to SSDataset in your original utils.
-# If it has a distinct purpose or structure, it should be defined separately.
-# For now, assuming SSDataset covers the needs.
+# SSDataset is the default dataset for seismic data.
+# Additional dataset classes should be defined separately if required.
